@@ -1,45 +1,55 @@
-import pprint
-import sqlite3
+import glob
+import sys
 
-from imutils import paths
 import face_recognition
 import pickle
 import cv2
 import os
 
-con = sqlite3.Connection('face_enc.sqlite')
-cur = con.cursor()
-names = cur.execute('SELECT info FROM Users').fetchall()
-imagePaths = []
-for i in names:
-    imagePaths.append((os.listdir(os.getcwd() + '\\Images\\' + i[0]), i[0]))
-# в директории Images хранятся папки со всеми изображениями
-# imagePaths = list(paths.list_images('Images'))
-knownEncodings = []
-knownNames = []
-# # перебираем все папки с изображениями
-for (i, imagePath) in enumerate(imagePaths):
-    for j in imagePath[0]:
-        # извлекаем имя человека из названия папки
-        # name = imagePath.split(os.path.sep)[-1]
-        name = imagePath[-1]
-        # загружаем изображение и конвертируем его из BGR (OpenCV ordering)
-        # в dlib ordering (RGB)
-        print(j, name)
-        image = cv2.imread(f'Images\\{name}\\' + j)
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        # используем библиотеку Face_recognition для обнаружения лиц
-        boxes = face_recognition.face_locations(rgb, model='hog')
-        # вычисляем эмбеддинги для каждого лица
-        encodings = face_recognition.face_encodings(rgb, boxes)
-        # loop over the encodings
-        for encoding in encodings:
-            knownEncodings.append(encoding)
-            knownNames.append(name)
-# сохраним эмбеддинги вместе с их именами в формате словаря
-data = {"encodings": knownEncodings, "names": knownNames}
-# для сохранения данных в файл используем метод pickle
-f = open("face_enc", "wb")
-f.write(pickle.dumps(data))
-f.close()
-con.close()
+cascPathface = os.getcwd().replace('\\', '/') + '/haarcascade_frontalface_alt2.xml'
+
+faceCascade = cv2.CascadeClassifier(cascPathface)
+
+data = pickle.loads(open('face_enc', "rb").read())
+
+print("Streaming started")
+video_capture = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = video_capture.read()
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = faceCascade.detectMultiScale(gray,
+                                         scaleFactor=1.3,
+                                         minNeighbors=9,
+                                         minSize=(60, 60),
+                                         flags=cv2.CASCADE_SCALE_IMAGE)
+
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    encodings = face_recognition.face_encodings(rgb)
+    names = []
+    for encoding in encodings:
+        matches = face_recognition.compare_faces(data["encodings"],
+                                                 encoding)
+        name = "Неопознанный человек"
+        if True in matches:
+            matchedIdxs = [i for (i, b) in enumerate(matches) if b]
+            counts = {}
+            for i in matchedIdxs:
+                name = data["names"][i]
+                counts[name] = counts.get(name, 0) + 1
+            name = max(counts, key=counts.get)
+        if name != "Неопознанный человек":
+            print('Вход разрешен')
+        else:
+            print('Вход воспрещен')
+
+        names.append(name)
+        # for ((x, y, w, h), name) in zip(faces, names):
+        #     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        #     cv2.putText(frame, name, (x, y), cv2.FONT_HERSHEY_SIMPLEX,
+        #                 0.75, (0, 255, 0), 2)
+    # cv2.imshow("Frame", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+video_capture.release()
+cv2.destroyAllWindows()
