@@ -1,5 +1,8 @@
 import glob
 import sys
+import time
+
+from arduino import ArduinoSerial
 
 import face_recognition
 import pickle
@@ -40,8 +43,12 @@ while True:
             name = max(counts, key=counts.get)
         if name != "Неопознанный человек":
             print('Вход разрешен')
+            ArduinoSerial.write(1)
+            time.sleep(2)
         else:
             print('Вход воспрещен')
+            ArduinoSerial.write(0)
+            time.sleep(2)
 
         names.append(name)
         # for ((x, y, w, h), name) in zip(faces, names):

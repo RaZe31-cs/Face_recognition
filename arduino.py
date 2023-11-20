@@ -2,9 +2,11 @@ import serial  # подключаем библиотеку для последо
 import time  # подключаем библиотеку чтобы задействовать функции задержки в программе
 
 ArduinoSerial = serial.Serial('com3', 9600)  # создаем объект для работы с портом последовательной связи
-time.sleep(2)  # ждем 2 секунды чтобы установилась последовательная связь
-a = ArduinoSerial.readline()
-print(a)
+# print(ArduinoSerial)
+# time.sleep(2)  # ждем 2 секунды чтобы установилась последовательная связь
+# a = ArduinoSerial.readline()
+# ArduinoSerial.write('1')
+# print(a)
 # print(ArduinoSerial.readline())  # считываем данные из последовательного порта и печатаем их в виде строки
 #
 # while 1:  # бесконечный цикл
