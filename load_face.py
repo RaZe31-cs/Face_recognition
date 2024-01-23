@@ -1,7 +1,6 @@
 import pprint
 import sqlite3
 
-from imutils import paths
 import face_recognition
 import pickle
 import cv2
